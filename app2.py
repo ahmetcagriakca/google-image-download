@@ -27,13 +27,14 @@ class ImageDownloader:
         if driver_path is None or driver_path == '':
             raise Exception(f'Driver path required')
 
-        if os.path.exists(driver_path):
+        if not os.path.exists(driver_path):
             raise Exception(f'driver not found on path:{driver_path}')
         self.driver_path = driver_path
         self.driver: WebDriver = webdriver.Chrome(executable_path=self.driver_path)
 
     def __del__(self):
-        self.driver.close()
+        if hasattr(self, 'driver') and self.driver is not None:
+            self.driver.close()
 
     def persist_image(self, url: str):
         try:
@@ -61,15 +62,16 @@ class ImageDownloader:
 
     def find_images(self):
         image_elements = self.driver.find_elements_by_xpath("//label[starts-with(@id,'label_images_')]/img")
-        image_count = 0
         image_urls = []
-        for image_element in image_elements:
-            image_count += 1
+        for image_order in range(1, len(image_elements)):
+            if image_order == len(image_elements):
+                image_xpath = f"//label[starts-with(@id,'label_images_{image_order}')]/img"
+            else:
+                image_xpath = f"//label[starts-with(@id,'label_images_0')]/img"
             try:
-                element = self.driver.find_element_by_xpath(
-                    f"//label[starts-with(@id,'label_images_{image_count}')]/img")
+                element = self.driver.find_element_by_xpath(image_xpath)
             except:
-                print(f'image {image_count} not found')
+                print(f'image {image_order} not found')
                 break
             image_urls.append(element.get_attribute('src'))
             click_element = self.driver.find_element_by_class_name(f"classifiedDetailMainPhoto")
@@ -104,18 +106,16 @@ class ImageDownloader:
     def start(self):
         self.driver.get(self.search_url)
         self.driver.refresh()
+        time.sleep(self.sleep_between_interactions)
         rows = self.find_rows()
         start = 1
-        order = 0
-        for row in range(rows):
+        for order in range(len(rows)):
             if order < start:
-                order += 1
                 continue
             self.scroll_to_end()
             result = self.open_detail(order=order)
             if not result:
                 print(f'row {order} not found')
-                order += 1
                 continue
             time.sleep(self.sleep_between_interactions)
 
@@ -124,7 +124,6 @@ class ImageDownloader:
             for elem in image_urls:
                 self.persist_image(elem)
 
-            order += 1
             self.driver.back()
             time.sleep(1)
 
