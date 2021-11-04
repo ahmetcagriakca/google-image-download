@@ -65,9 +65,9 @@ class ImageDownloader:
         image_urls = []
         for image_order in range(1, len(image_elements)):
             if image_order == len(image_elements):
-                image_xpath = f"//label[starts-with(@id,'label_images_{image_order}')]/img"
-            else:
                 image_xpath = f"//label[starts-with(@id,'label_images_0')]/img"
+            else:
+                image_xpath = f"//label[starts-with(@id,'label_images_{image_order}')]/img"
             try:
                 element = self.driver.find_element_by_xpath(image_xpath)
             except:
